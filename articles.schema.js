@@ -1,0 +1,22 @@
+const { Schema, model } = require("mongoose");
+
+const articleSchema = Schema({
+  title: String,
+  content: String,
+  user: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+  },
+  status: {
+    type: String,
+    enum: {
+      values: ["draft", "published"],
+      message: "{VALUE} n'est pas un statut valide (draft ou published attendu)",
+    },
+    default: "draft",
+  },
+});
+
+let Article;
+
+module.exports = Article = model("Article", articleSchema);
