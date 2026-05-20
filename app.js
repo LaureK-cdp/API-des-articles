@@ -1,8 +1,8 @@
 const { server } = require("../server"); // Ligne 1 déjà présente
 const config = require("../config"); // Ligne 2 déjà présente
 const mongoose = require("mongoose"); // Ligne 3 déjà présente
-const usersRouter = require("../api/users/users.router"); // Déjà présent dans votre projet
-const articlesRouter = require("../api/articles/articles.router"); // 
+const usersRouter = require("./api/users/users.router");
+const articlesRouter = require("./api/articles/articles.router");
 
 // ... (le reste de votre code avec mongoose.connect) ...
 
