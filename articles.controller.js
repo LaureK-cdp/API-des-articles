@@ -1,84 +1,75 @@
-const userService = require("./users.service");
-const articlesService = require("../articles/articles.service"); // Importation nécessaire pour chercher les articles
-const UnauthorizedError = require("../../errors/unauthorized");
+const articlesService = require("./articles.service");
+const userService = require("../users/users.service"); // On remonte d'un dossier (../) puis on va dans users
 
-class UsersController {
-  async getAll(req, res, next) {
-    try {
-      const users = await userService.getAll();
-      res.json(users);
-    } catch (err) {
-      next(err);
+class ArticlesController {
+    // 1. Création d'un article (Utilisateur connecté requis)
+    async create(req, res, next) {
+        try {
+            const articleData = {
+                ...req.body,
+                user: req.user._id // Récupéré automatiquement via votre auth middleware
+            };
+            const article = await articlesService.create(articleData);
+            
+            // Notification en temps réel
+            req.io.emit("article:create", article);
+            
+            res.status(201).json(article);
+        } catch (err) {
+            next(err);
+        }
     }
-  }
 
-  async getById(req, res, next) {
-    try {
-      const id = req.params.id;
-      const user = await userService.get(id);
-      res.json(user);
-    } catch (err) {
-      next(err);
+    // 2. Modification d'un article (Réservé aux administrateurs)
+    async update(req, res, next) {
+        try {
+            if (req.user.role !== "admin") {
+                throw new UnauthorizedError("Accès refusé : Seuls les administrateurs peuvent modifier un article");
+            }
+            const id = req.params.id;
+            const articleModified = await articlesService.update(id, req.body);
+            
+            if (!articleModified) {
+                throw new NotFoundError("Article introuvable");
+            }
+            
+            req.io.emit("article:update", articleModified);
+            res.json(articleModified);
+        } catch (err) {
+            next(err);
+        }
     }
-  }
 
-  async create(req, res, next) {
-    try {
-      const user = await userService.create(req.body);
-      user.password = undefined;
-      res.status(201).json(user);
-    } catch (err) {
-      next(err);
+    // 3. Suppression d'un article (Réservé aux administrateurs)
+    async delete(req, res, next) {
+        try {
+            if (req.user.role !== "admin") {
+                throw new UnauthorizedError("Accès refusé : Seuls les administrateurs peuvent supprimer un article");
+            }
+            const id = req.params.id;
+            const result = await articlesService.delete(id);
+            
+            if (result.deletedCount === 0) {
+                throw new NotFoundError("Article introuvable");
+            }
+            
+            req.io.emit("article:delete", { id });
+            res.status(204).send();
+        } catch (err) {
+            next(err);
+        }
     }
-  }
 
-  async update(req, res, next) {
-    try {
-      const id = req.params.id;
-      const data = req.body;
-      const userModified = await userService.update(id, data);
-      userModified.password = undefined;
-      res.json(userModified);
-    } catch (err) {
-      next(err);
+    // 4. Endpoint public : Afficher les articles d'un utilisateur spécifique
+    async getByUser(req, res, next) {
+        try {
+            const userId = req.params.userId;
+            const articles = await articlesService.getByUser(userId);
+            res.json(articles);
+        } catch (err) {
+            next(err);
+        }
     }
-  }
-
-  async delete(req, res, next) {
-    try {
-      const id = req.params.id;
-      await userService.delete(id);
-      res.status(204).send();
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async login(req, res, next) {
-    try {
-      const { email, password } = req.body;
-      const result = await userService.login(email, password);
-      res.json(result);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  // =========================================================================
-  // EXERCICE 4 - NOUVELLE MÉTHODE PUBLIQUE : Récupérer les articles d'un utilisateur
-  // =========================================================================
-  async getUserArticles(req, res, next) {
-    try {
-      const userId = req.params.userId; // Récupère l'ID depuis l'URL (:userId)
-      
-      // Appel au service des articles pour récupérer uniquement ceux du membre
-      const articles = await articlesService.getByUser(userId); 
-      
-      res.json(articles);
-    } catch (err) {
-      next(err);
-    }
-  }
 }
 
-module.exports = new UsersController();
+module.exports = new ArticlesController();
