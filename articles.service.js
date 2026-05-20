@@ -1,31 +1,26 @@
 const Article = require("./articles.schema");
 
 class ArticlesService {
-  // 1. Création d'un article (Point 7 précédent)
-  async create(data) {
+  // Créer un article
+  create(data) {
     const article = new Article(data);
-    return await article.save();
+    return article.save();
   }
 
-  // 2. Mise à jour d'un article (Point 6 précédent)
-  async update(id, data) {
-    return await Article.findByIdAndUpdate(id, data, { new: true });
+  // Modifier un article
+  update(id, data) {
+    return Article.findByIdAndUpdate(id, data, { new: true });
   }
 
-  // 3. Suppression d'un article (Point 6 précédent)
-  async delete(id) {
-    return await Article.deleteOne({ _id: id });
+  // Supprimer un article
+  delete(id) {
+    return Article.deleteOne({ _id: id });
   }
 
-  // =========================================================================
-  // EXERCICE 4 : Récupérer tous les articles d'un utilisateur avec POPULATE
-  // =========================================================================
-  async getByUser(userId) {
-    return await Article.find({ user: userId })
-      .populate({
-        path: "user",          // 1. On cible la propriété "user" de l'article
-        select: "-password"    // 2. Le signe "-" signifie "EXCLURE". On masque le mot de passe !
-      });
+  // RÉPONSE À LA ROUTE PUBLIQUE : Récupérer les articles d'un utilisateur
+  getByUser(userId) {
+    // Le .populate("user", "-password") permet de lier l'utilisateur à l'article tout en masquant son mot de passe par sécurité
+    return Article.find({ user: userId }).populate("user", "-password");
   }
 }
 
